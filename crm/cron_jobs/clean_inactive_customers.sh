@@ -1,22 +1,25 @@
 #!/bin/bash
 
 
-ONE_YEAR_AGO=$(date -d "1 year ago" +%Y-%m-%d)
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+PROJECT_ROOT="$SCRIPT_DIR/.."
 
 
-DELETED_COUNT=$(python manage.py shell -c "
+cd "$PROJECT_ROOT"
+TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S")
+OUTPUT=$(python manage.py shell -c "
 from django.utils import timezone
-from datetime import datetime
-from crm.models import Customer
-from django.db.models import Count
+from datetime import timedelta
+from customers.models import Customer
 
-cutoff_date = datetime.strptime('$ONE_YEAR_AGO', '%Y-%m-%d').date()
-customers = Customer.objects.annotate(order_count=Count('orders')).filter(order_count=0, created_at__lt=cutoff_date)
-count = customers.count()
-customers.delete()
-print(count)
+one_year_ago = timezone.now() - timedelta(days=365)
+inactive_customers = Customer.objects.filter(
+    orders__isnull=True,
+    created_at__lt=one_year_ago
+)
+count = inactive_customers.count()
+inactive_customers.delete()
+print(f'Deleted {count} customers.')
 ")
 
-
-TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
-echo "[$TIMESTAMP] Deleted $DELETED_COUNT inactive customers" >> /tmp/customer_cleanup_log.txt
+echo "[$TIMESTAMP] $OUTPUT" >> /tmp/customer_cleanup_log.txt
