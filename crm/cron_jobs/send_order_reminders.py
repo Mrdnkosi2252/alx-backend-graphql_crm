@@ -1,52 +1,37 @@
-#!/usr/bin/env python3
-
 import requests
 from datetime import datetime, timedelta
-import json
 
-def send_order_reminders():
-    
-    seven_days_ago = (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d')
-    
-    
-    query = """
-    query GetRecentOrders($since: String!) {
-        orders(orderDate_Gte: $since) {
-            id
-            customer {
-                email
-            }
-        }
+
+query = """
+query GetRecentOrders {
+  orders(orderDate_Gte: "%s") {
+    id
+    customer {
+      email
     }
-    """
-    
-    variables = {"since": seven_days_ago}
-    
-    try:
-        
-        response = requests.post(
-            "http://localhost:8000/graphql",
-            json={'query': query, 'variables': variables},
-            headers={'Content-Type': 'application/json'}
-        )
-        
-        if response.status_code == 200:
-            data = response.json()
-            orders = data.get('data', {}).get('orders', [])
-            
-            # Log results
-            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            with open('/tmp/order_reminders_log.txt', 'a') as f:
-                f.write(f"[{timestamp}] Found {len(orders)} orders from the last 7 days:\n")
-                for order in orders:
-                    f.write(f"Order ID: {order['id']}, Customer Email: {order['customer']['email']}\n")
-            
-            print("Order reminders processed!")
-        else:
-            print(f"Error: Received status code {response.status_code}")
-            
-    except Exception as e:
-        print(f"Error: {str(e)}")
+  }
+}
+"""
 
-if __name__ == "__main__":
-    send_order_reminders()
+
+seven_days_ago = (datetime.now() - timedelta(days=7)).isoformat()
+endpoint = "http://localhost:8000/graphql"
+
+try:
+    response = requests.post(
+        endpoint,
+        json={'query': query % seven_days_ago},
+        headers={'Content-Type': 'application/json'}
+    )
+    orders = response.json()['data']['orders']
+    
+    
+    with open('/tmp/order_reminders_log.txt', 'a') as f:
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        f.write(f"[{timestamp}] Found {len(orders)} orders\n")
+        for order in orders:
+            f.write(f"Order {order['id']} - Customer: {order['customer']['email']}\n")
+            
+    print("Order reminders processed!")
+except Exception as e:
+    print(f"Error: {str(e)}")

@@ -22,4 +22,5 @@ inactive_customers.delete()
 print(f'Deleted {count} customers.')
 ")
 
+
 echo "[$TIMESTAMP] $OUTPUT" >> /tmp/customer_cleanup_log.txt
