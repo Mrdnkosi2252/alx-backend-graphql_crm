@@ -22,7 +22,7 @@ def generate_crm_report():
         }
     }
     
-    # Log to file
+    
     with open('/tmp/crm_report_log.txt', 'a') as f:
         f.write(f"[{timestamp}] CRM Report Generated\n")
         f.write(f"Report Data: {json.dumps(report_data, indent=2)}\n")
